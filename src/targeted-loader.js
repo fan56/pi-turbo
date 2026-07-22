@@ -1,6 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
-import { PI_OPT_DIR, EMA_ALPHA, PER_EXT_TIMINGS_FILE } from "./config.js";
+import {
+	PI_TURBO_DIR,
+	EMA_ALPHA,
+	PER_EXT_TIMINGS_FILE,
+	STATS_ENABLED,
+	STATS_SUMMARY,
+} from "./config.js";
 
 /** Extensions with per-ext EMA above this are loaded in the background.
  *  Must be high enough to only catch truly I/O-bound extensions (MCP handshake).
@@ -10,31 +16,41 @@ const IO_BOUND_THRESHOLD_MS = 1000;
 // ── Per-extension timing persistence ────────────────────────────────
 
 function readPerExtTimings() {
-  try {
-    return new Map(Object.entries(JSON.parse(fs.readFileSync(PER_EXT_TIMINGS_FILE, "utf-8"))));
-  } catch {
-    return new Map();
-  }
+	try {
+		return new Map(
+			Object.entries(
+				JSON.parse(fs.readFileSync(PER_EXT_TIMINGS_FILE, "utf-8")),
+			),
+		);
+	} catch {
+		return new Map();
+	}
 }
 
 function savePerExtTimings(timings) {
-  try {
-    fs.mkdirSync(PI_OPT_DIR, { recursive: true });
-    fs.writeFileSync(PER_EXT_TIMINGS_FILE, JSON.stringify(Object.fromEntries(timings), null, 2));
-  } catch { /* best-effort */ }
+	try {
+		fs.mkdirSync(PI_TURBO_DIR, { recursive: true });
+		fs.writeFileSync(
+			PER_EXT_TIMINGS_FILE,
+			JSON.stringify(Object.fromEntries(timings), null, 2),
+		);
+	} catch {
+		/* best-effort */
+	}
 }
 
 function updateEMA(timings, path, elapsedMs) {
-  const ms = Math.round(elapsedMs);
-  const existing = timings.get(path);
-  if (existing) {
-    existing.ema = Math.round(EMA_ALPHA * ms + (1 - EMA_ALPHA) * existing.ema);
-    if (!Array.isArray(existing.history)) existing.history = [];
-    existing.history.push(ms);
-    if (existing.history.length > 20) existing.history = existing.history.slice(-20);
-  } else {
-    timings.set(path, { ema: ms, history: [ms] });
-  }
+	const ms = Math.round(elapsedMs);
+	const existing = timings.get(path);
+	if (existing) {
+		existing.ema = Math.round(EMA_ALPHA * ms + (1 - EMA_ALPHA) * existing.ema);
+		if (!Array.isArray(existing.history)) existing.history = [];
+		existing.history.push(ms);
+		if (existing.history.length > 20)
+			existing.history = existing.history.slice(-20);
+	} else {
+		timings.set(path, { ema: ms, history: [ms] });
+	}
 }
 
 // ── Core loader ─────────────────────────────────────────────────────
@@ -56,94 +72,150 @@ function updateEMA(timings, path, elapsedMs) {
  *  - Total ≈ max(2191, 2450) ≈ 2450 ms  vs  serial 4641 ms  → 47 % faster
  */
 export async function targetedLoadExtensions(
-  paths,
-  cwd,
-  eventBus,
-  loadExtensionsCached,
-  createExtensionRuntime,
+	paths,
+	cwd,
+	eventBus,
+	loadExtensionsCached,
+	createExtensionRuntime,
 ) {
-  if (paths.length === 0) {
-    return { extensions: [], errors: [], runtime: createExtensionRuntime() };
-  }
+	if (paths.length === 0) {
+		return { extensions: [], errors: [], runtime: createExtensionRuntime() };
+	}
 
-  const runtime = createExtensionRuntime();
-  const timings = readPerExtTimings();
+	const runtime = createExtensionRuntime();
+	const timings = readPerExtTimings();
 
-  // Identify I/O-bound extensions from prior profiling data
-  const ioBound = new Set();
-  for (const p of paths) {
-    const t = timings.get(p);
-    if (t && t.ema > IO_BOUND_THRESHOLD_MS) ioBound.add(p);
-  }
+	// Identify I/O-bound extensions from prior profiling data
+	const ioBound = new Set();
+	for (const p of paths) {
+		const t = timings.get(p);
+		if (t && t.ema > IO_BOUND_THRESHOLD_MS) ioBound.add(p);
+	}
 
-  const isProfiling = timings.size === 0;
-  const bgPaths = isProfiling ? [] : paths.filter((p) => ioBound.has(p));
-  const serialPaths = isProfiling ? paths : paths.filter((p) => !ioBound.has(p));
+	const isProfiling = timings.size === 0;
+	const bgPaths = isProfiling ? [] : paths.filter((p) => ioBound.has(p));
+	const serialPaths = isProfiling
+		? paths
+		: paths.filter((p) => !ioBound.has(p));
 
-  if (bgPaths.length > 0) {
-    process.stderr.write(
-      `[pi-opt] targeted: ${bgPaths.length} background, ${serialPaths.length} serial\n`,
-    );
-  } else if (isProfiling) {
-    process.stderr.write(`[pi-opt] profiling ${paths.length} extensions (first run)...\n`);
-  }
+	if (bgPaths.length > 0) {
+		process.stderr.write(
+			`[pi-turbo] targeted: ${bgPaths.length} background, ${serialPaths.length} serial\n`,
+		);
+	} else if (isProfiling) {
+		process.stderr.write(
+			`[pi-turbo] profiling ${paths.length} extensions (first run)...\n`,
+		);
+	}
 
-  const totalT0 = performance.now();
+	const totalT0 = performance.now();
 
-  // ── Start background (I/O-bound) extensions ──────────────────────
-  const bgPromises = bgPaths.map(async (p) => {
-    const t0 = performance.now();
-    const result = await loadExtensionsCached([p], cwd, eventBus, runtime);
-    return { path: p, result, elapsed: performance.now() - t0 };
-  }).catch((err) => {
-    console.error(`[pi-opt] background extension failed: ${err.message}`);
-    throw err;
-  });
+	// ── Start background (I/O-bound) extensions ──────────────────────
+	const bgPromises = bgPaths.map(async (p) => {
+		const t0 = performance.now();
+		try {
+			const result = await loadExtensionsCached([p], cwd, eventBus, runtime);
+			return { path: p, result, elapsed: performance.now() - t0 };
+		} catch (err) {
+			console.error(`[pi-turbo] background extension failed: ${err.message}`);
+			throw err;
+		}
+	});
 
-  // ── Load serial extensions one-at-a-time (for per-ext timing) ────
-  const serialResults = [];
-  for (const p of serialPaths) {
-    const t0 = performance.now();
-    const result = await loadExtensionsCached([p], cwd, eventBus, runtime);
-    serialResults.push({ path: p, result, elapsed: performance.now() - t0 });
-  }
+	// ── Load serial extensions one-at-a-time (for per-ext timing) ────
+	const serialResults = [];
+	for (const p of serialPaths) {
+		const t0 = performance.now();
+		const result = await loadExtensionsCached([p], cwd, eventBus, runtime);
+		serialResults.push({ path: p, result, elapsed: performance.now() - t0 });
+	}
 
-  // ── Await background extensions ──────────────────────────────────
-  const bgResults = await Promise.all(bgPromises);
-  const totalElapsed = performance.now() - totalT0;
+	// ── Await background extensions ──────────────────────────────────
+	const bgResults = await Promise.all(bgPromises);
+	const totalElapsed = performance.now() - totalT0;
 
-  // Detailed timing for A/B analysis
-  const bgTime = bgResults.length > 0 ? Math.max(...bgResults.map((r) => r.elapsed)) : 0;
-  const serialTime = serialResults.reduce((sum, r) => sum + r.elapsed, 0);
-  if (bgPaths.length > 0) {
-    const saved = Math.max(0, bgTime + serialTime - totalElapsed);
-    process.stderr.write(
-      `[pi-opt] timing: bg=${Math.round(bgTime)}ms serial=${Math.round(serialTime)}ms ` +
-      `total=${Math.round(totalElapsed)}ms saved=${Math.round(saved)}ms\n`,
-    );
-  }
+	// Detailed timing for A/B analysis
+	const bgTime =
+		bgResults.length > 0 ? Math.max(...bgResults.map((r) => r.elapsed)) : 0;
+	const serialTime = serialResults.reduce((sum, r) => sum + r.elapsed, 0);
+	if (bgPaths.length > 0) {
+		const saved = Math.max(0, bgTime + serialTime - totalElapsed);
+		process.stderr.write(
+			`[pi-turbo] timing: bg=${Math.round(bgTime)}ms serial=${Math.round(serialTime)}ms ` +
+				`total=${Math.round(totalElapsed)}ms saved=${Math.round(saved)}ms\n`,
+		);
+	}
 
-  // ── Update per-extension EMA timings ─────────────────────────────
-  for (const { path: p, elapsed } of [...bgResults, ...serialResults]) {
-    updateEMA(timings, p, elapsed);
-  }
-  savePerExtTimings(timings);
+	// ── Update per-extension EMA timings ─────────────────────────────
+	for (const { path: p, elapsed } of [...bgResults, ...serialResults]) {
+		updateEMA(timings, p, elapsed);
+	}
+	savePerExtTimings(timings);
 
-  // ── Merge in original path order ─────────────────────────────────
-  const byPath = new Map();
-  for (const { path: p, result } of [...bgResults, ...serialResults]) {
-    byPath.set(p, result);
-  }
+	// ── Merge in original path order ─────────────────────────────────
+	const byPath = new Map();
+	for (const { path: p, result } of [...bgResults, ...serialResults]) {
+		byPath.set(p, result);
+	}
 
-  const extensions = [];
-  const errors = [];
-  for (const p of paths) {
-    const r = byPath.get(p);
-    if (r) {
-      extensions.push(...r.extensions);
-      errors.push(...r.errors);
-    }
-  }
+	const extensions = [];
+	const errors = [];
+	for (const p of paths) {
+		const r = byPath.get(p);
+		if (r) {
+			extensions.push(...r.extensions);
+			errors.push(...r.errors);
+		}
+	}
 
-  return { extensions, errors, runtime };
+	// ── Startup stats ──────────────────────────────────────────────────
+	if (STATS_SUMMARY) {
+		const estimatedSerial = bgTime + serialTime;
+		const savedPct =
+			estimatedSerial > 0
+				? Math.round(((estimatedSerial - totalElapsed) / estimatedSerial) * 100)
+				: 0;
+
+		if (isProfiling || savedPct <= 0) {
+			console.error(
+				`⚡ pi-turbo: ${paths.length} exts in ${Math.round(totalElapsed)}ms (profiling run, no EMA data yet)`,
+			);
+		} else {
+			let emaRuns = 0;
+			for (const t of timings.values()) {
+				if (Array.isArray(t.history) && t.history.length > emaRuns)
+					emaRuns = t.history.length;
+			}
+			const chunkCount = bgPaths.length > 0 ? 1 : 0;
+			console.error(
+				`⚡ pi-turbo: ${paths.length} exts in ${Math.round(totalElapsed)}ms ` +
+					`(serial ~${Math.round(estimatedSerial)}ms, saved ${savedPct}%, ` +
+					`${chunkCount} chunk${chunkCount === 1 ? "" : "s"}, EMA: ${emaRuns} runs)`,
+			);
+
+			if (STATS_ENABLED) {
+				const base = (p) => path.basename(p);
+				if (bgPaths.length > 0) {
+					console.error(`  chunks: [${bgPaths.map(base).join(", ")}]`);
+				}
+				console.error(`  serial: [${serialPaths.map(base).join(", ")}]`);
+				let slowestPath = null;
+				let slowestEma = 0;
+				for (const p of paths) {
+					const t = timings.get(p);
+					if (t && t.ema > slowestEma) {
+						slowestEma = t.ema;
+						slowestPath = p;
+					}
+				}
+				if (slowestPath) {
+					console.error(
+						`  slowest: ${base(slowestPath)} (${slowestEma}ms EMA)`,
+					);
+				}
+			}
+		}
+	}
+
+	return { extensions, errors, runtime };
 }

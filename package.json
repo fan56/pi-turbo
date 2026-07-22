@@ -1,10 +1,10 @@
 {
-  "name": "pi-opt",
+  "name": "pi-turbo",
   "version": "0.1.0",
-  "description": "Optimized pi launcher — parallel extension loading with timing analytics",
+  "description": "pi-turbo — optimized pi launcher with parallel extension loading and footer caching",
   "type": "module",
   "bin": {
-    "pi-opt": "./bin/pi-opt.js"
+    "pi-tb": "./bin/pi-tb.js"
   },
   "engines": {
     "node": ">=22.19.0"
