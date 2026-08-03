@@ -99,13 +99,17 @@ export async function targetedLoadExtensions(
 		: paths.filter((p) => !ioBound.has(p));
 
 	if (bgPaths.length > 0) {
-		process.stderr.write(
-			`[pi-turbo] targeted: ${bgPaths.length} background, ${serialPaths.length} serial\n`,
-		);
+		if (STATS_SUMMARY) {
+			process.stderr.write(
+				`[pi-turbo] targeted: ${bgPaths.length} background, ${serialPaths.length} serial\n`,
+			);
+		}
 	} else if (isProfiling) {
-		process.stderr.write(
-			`[pi-turbo] profiling ${paths.length} extensions (first run)...\n`,
-		);
+		if (STATS_SUMMARY) {
+			process.stderr.write(
+				`[pi-turbo] profiling ${paths.length} extensions (first run)...\n`,
+			);
+		}
 	}
 
 	const totalT0 = performance.now();
@@ -140,10 +144,12 @@ export async function targetedLoadExtensions(
 	const serialTime = serialResults.reduce((sum, r) => sum + r.elapsed, 0);
 	if (bgPaths.length > 0) {
 		const saved = Math.max(0, bgTime + serialTime - totalElapsed);
-		process.stderr.write(
-			`[pi-turbo] timing: bg=${Math.round(bgTime)}ms serial=${Math.round(serialTime)}ms ` +
-				`total=${Math.round(totalElapsed)}ms saved=${Math.round(saved)}ms\n`,
-		);
+		if (STATS_SUMMARY) {
+			process.stderr.write(
+				`[pi-turbo] timing: bg=${Math.round(bgTime)}ms serial=${Math.round(serialTime)}ms ` +
+					`total=${Math.round(totalElapsed)}ms saved=${Math.round(saved)}ms\n`,
+			);
+		}
 	}
 
 	// ── Update per-extension EMA timings ─────────────────────────────

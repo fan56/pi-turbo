@@ -4,6 +4,7 @@ import { DefaultResourceLoader } from "@earendil-works/pi-coding-agent";
 import { targetedLoadExtensions } from "./targeted-loader.js";
 import { recordTiming } from "./timing.js";
 import { applyFooterPatch } from "./footer-patch.js";
+import { STATS_SUMMARY } from "./config.js";
 
 // Resolve pi's dist directory (bypasses exports map for internal modules)
 const piEntryUrl = import.meta.resolve("@earendil-works/pi-coding-agent");
@@ -109,9 +110,11 @@ export async function applyPatch() {
 			return extensionsResult;
 		};
 
-		process.stderr.write(
-			"[pi-turbo] targeted parallel extension loading enabled\n",
-		);
+		if (STATS_SUMMARY) {
+			process.stderr.write(
+				"[pi-turbo] targeted parallel extension loading enabled\n",
+			);
+		}
 	} catch (err) {
 		process.stderr.write(
 			`[pi-turbo] patch failed, using default loader: ${err.message}\n`,

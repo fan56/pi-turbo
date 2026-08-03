@@ -4,6 +4,7 @@ import {
 	TIMINGS_FILE,
 	EMA_ALPHA,
 	MAX_HISTORY,
+	STATS_SUMMARY,
 } from "./config.js";
 
 /**
@@ -44,9 +45,11 @@ export function recordTiming(extensionCount, elapsedMs) {
 		const ratio = data.baseline
 			? ` | ${(data.baseline / elapsedMs).toFixed(2)}x vs baseline`
 			: "";
-		process.stderr.write(
-			`[pi-turbo] ${extensionCount} extensions in ${Math.round(elapsedMs)}ms (EMA ${data.ema}ms${ratio})\n`,
-		);
+		if (STATS_SUMMARY) {
+			process.stderr.write(
+				`[pi-turbo] ${extensionCount} extensions in ${Math.round(elapsedMs)}ms (EMA ${data.ema}ms${ratio})\n`,
+			);
+		}
 	} catch (err) {
 		process.stderr.write(`[pi-turbo] timing error: ${err.message}\n`);
 	}

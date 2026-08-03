@@ -128,6 +128,14 @@ PI_TURBO_SERIAL=1 pi-tb        # disable startup optimization (A/B baseline)
 PI_TURBO_NO_FOOTER=1 pi-tb     # disable footer caching only
 ```
 
+## Startup logging
+
+pi-turbo prints informational startup logs to stderr. Control them with `PI_TURBO_STATS`:
+
+- `PI_TURBO_STATS=0` — silence all informational startup logs (error and fallback logs are still shown). The one-line startup summary is on by default.
+- `PI_TURBO_STATS=1` — additionally show detailed stats such as chunk details.
+- `PI_TURBO_SERIAL=1` — disable parallel loading (for A/B baseline tests).
+
 ## Uninstall
 
 ```bash
@@ -164,6 +172,7 @@ Both patches are fail-safe: any error falls back to pi's original behavior.
 | `PI_TURBO_DEBUG=1` | — | Verbose loading logs |
 | `PI_TURBO_PROFILE=1` | — | Force re-profiling (ignore existing EMA data) |
 | `PI_TURBO_NO_FOOTER=1` | — | Disable footer caching only |
+| `PI_TURBO_STATS` | summary on | `=0` silences all informational startup logs (errors/fallbacks still shown); `=1` adds detailed stats |
 
 ## Requirements
 

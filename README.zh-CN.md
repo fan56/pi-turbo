@@ -114,6 +114,14 @@ PI_TURBO_SERIAL=1 pi-tb        # 禁用启动优化（A/B 基线对比）
 PI_TURBO_NO_FOOTER=1 pi-tb     # 仅禁用 Footer 缓存
 ```
 
+## 启动日志（Startup logging）
+
+pi-turbo 会往 stderr 输出启动信息日志。可通过 `PI_TURBO_STATS` 控制：
+
+- `PI_TURBO_STATS=0` — 关闭所有启动信息性日志（错误与回退日志仍会显示）。默认开启一行启动摘要。
+- `PI_TURBO_STATS=1` — 额外显示 chunk 细节等详细统计。
+- `PI_TURBO_SERIAL=1` — 禁用并行加载（A/B 基线测试用）。
+
 ## 卸载（Uninstall）
 
 ```bash
@@ -150,6 +158,7 @@ pi-turbo 是一个轻量包装器，在运行时打两个 monkey-patch：
 | `PI_TURBO_DEBUG=1` | — | 输出详细加载日志 |
 | `PI_TURBO_PROFILE=1` | — | 强制重新画像（忽略现有 EMA 数据） |
 | `PI_TURBO_NO_FOOTER=1` | — | 仅禁用 Footer 缓存 |
+| `PI_TURBO_STATS` | 默认开启摘要 | `=0` 关闭所有启动信息性日志（错误与回退日志仍会显示）；`=1` 额外显示详细统计 |
 
 ## 系统要求（Requirements）
 

@@ -1,5 +1,6 @@
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { STATS_SUMMARY } from "./config.js";
 
 /**
  * Patch SessionManager.getEntries() and AgentSession.getContextUsage()
@@ -10,9 +11,11 @@ import { pathToFileURL } from "node:url";
  */
 export async function applyFooterPatch(piDistDir) {
 	if (process.env.PI_TURBO_NO_FOOTER === "1") {
-		process.stderr.write(
-			"[pi-turbo] footer caching disabled (PI_TURBO_NO_FOOTER=1)\n",
-		);
+		if (STATS_SUMMARY) {
+			process.stderr.write(
+				"[pi-turbo] footer caching disabled (PI_TURBO_NO_FOOTER=1)\n",
+			);
+		}
 		return;
 	}
 
@@ -63,7 +66,9 @@ export async function applyFooterPatch(piDistDir) {
 			};
 		}
 
-		process.stderr.write("[pi-turbo] footer render caching enabled\n");
+		if (STATS_SUMMARY) {
+			process.stderr.write("[pi-turbo] footer render caching enabled\n");
+		}
 	} catch (err) {
 		process.stderr.write(
 			`[pi-turbo] footer patch failed (non-fatal): ${err.message}\n`,
