@@ -93,7 +93,14 @@ I/O 密集扩展（2527ms）放入后台块，与 CPU 密集扩展的串行加�
 ## 安装（Install）
 
 ```bash
-cd ~/github/pi-opt
+npm i -g @aiwayds/pi-turbo
+```
+
+或从源码安装：
+
+```bash
+git clone https://github.com/fan56/pi-turbo.git
+cd pi-turbo
 ./install.sh
 ```
 

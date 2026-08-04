@@ -107,7 +107,14 @@ getContextUsage() → getBranch() + estimateContextTokens()
 ## Install
 
 ```bash
-cd ~/github/pi-opt
+npm i -g @aiwayds/pi-turbo
+```
+
+Or from source:
+
+```bash
+git clone https://github.com/fan56/pi-turbo.git
+cd pi-turbo
 ./install.sh
 ```
 

@@ -1,5 +1,5 @@
 {
-  "name": "pi-turbo",
+  "name": "@aiwayds/pi-turbo",
   "version": "0.1.0",
   "description": "pi-turbo — optimized pi launcher with parallel extension loading and footer caching",
   "type": "module",
