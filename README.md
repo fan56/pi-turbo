@@ -7,6 +7,13 @@ Performance wrapper for [pi](https://github.com/earendil-works/pi) — two runti
 - **Startup**: parallel extension loading (33% faster cold start)
 - **Runtime**: footer render caching (eliminates Enter-key lag in long conversations)
 
+## Why pi-turbo
+
+This repo exists to fix two pains in daily pi use:
+
+1. **Extension loading is slow and fully serial.** pi loads extensions one by one — no async — so every cold start means seconds of staring at a blank terminal. pi-turbo profiles per-extension timing, then loads I/O-bound extensions (e.g. MCP handshakes) in the background while the others load, overlapping I/O wait with CPU work (~30% faster in A/B runs).
+2. **Long sessions start to feel like a hang.** Past ~100 messages, pressing Enter shows latency that grows with the session. One major cause: the footer re-scans all session entries on every render. pi-turbo caches those results (`getEntries()` / `getContextUsage()`) by entry count, so repeated renders hit an O(1) cache instead of paying the O(n) scan again — cutting the per-render footer cost that compounds in long sessions.
+
 ## Problems it solves
 
 ### 1. Slow startup (extension loading)
