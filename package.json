@@ -11,5 +11,20 @@
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": ">=0.50.0"
+  },
+  "files": [
+    "bin",
+    "src",
+    "install.sh",
+    "uninstall.sh"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fan56/pi-turbo.git"
+  },
+  "homepage": "https://github.com/fan56/pi-turbo#readme",
+  "bugs": {
+    "url": "https://github.com/fan56/pi-turbo/issues"
   }
 }
