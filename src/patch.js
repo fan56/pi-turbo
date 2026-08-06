@@ -3,6 +3,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { DefaultResourceLoader } from "@earendil-works/pi-coding-agent";
 import { targetedLoadExtensions } from "./targeted-loader.js";
 import { recordTiming } from "./timing.js";
+import { writeLastRun } from "./last-run.js";
 import { applyFooterPatch } from "./footer-patch.js";
 import { STATS_SUMMARY } from "./config.js";
 
@@ -69,7 +70,18 @@ export async function applyPatch() {
 					extensionPaths,
 					preTrustExtensions,
 				);
-				recordTiming(extensionPaths.length, performance.now() - t0);
+				const elapsed = performance.now() - t0;
+				recordTiming(extensionPaths.length, elapsed);
+				if (process.stderr.isTTY) {
+					writeLastRun({
+						ts: new Date().toISOString(),
+						n: extensionPaths.length,
+						totalMs: Math.round(elapsed),
+						savedMs: 0,
+						pct: 0,
+						serial: true,
+					});
+				}
 				return result;
 			}
 
