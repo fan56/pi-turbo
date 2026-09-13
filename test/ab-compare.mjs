@@ -56,10 +56,10 @@ for (const e of serialResult.errors) console.log(`  ⚠ ${path.basename(e.path)}
 
 // --- B: Parallel (4 chunks) ---
 clearExtensionCache();
-const { parallelLoadExtensions } = await import("../src/parallel-loader.js");
+const { targetedLoadExtensions } = await import("../src/targeted-loader.js");
 const busB = createEventBus();
 const t1 = performance.now();
-const parallelResult = await parallelLoadExtensions(extPaths, cwd, busB, loadExtensionsCached, createExtensionRuntime);
+const parallelResult = await targetedLoadExtensions(extPaths, cwd, busB, loadExtensionsCached, createExtensionRuntime);
 const parallelMs = performance.now() - t1;
 console.log(`[B] Parallel: ${parallelResult.extensions.length} loaded, ${parallelResult.errors.length} errors, ${Math.round(parallelMs)}ms`);
 for (const e of parallelResult.errors) console.log(`  ⚠ ${path.basename(e.path)}: ${String(e.error).slice(0, 100)}`);
@@ -67,7 +67,7 @@ for (const e of parallelResult.errors) console.log(`  ⚠ ${path.basename(e.path
 // --- C: Parallel again (warm cache) ---
 const busC = createEventBus();
 const t2 = performance.now();
-const warmResult = await parallelLoadExtensions(extPaths, cwd, busC, loadExtensionsCached, createExtensionRuntime);
+const warmResult = await targetedLoadExtensions(extPaths, cwd, busC, loadExtensionsCached, createExtensionRuntime);
 const warmMs = performance.now() - t2;
 console.log(`[C] Parallel (warm): ${warmResult.extensions.length} loaded, ${warmResult.errors.length} errors, ${Math.round(warmMs)}ms`);
 

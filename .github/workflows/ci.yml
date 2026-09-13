@@ -62,5 +62,30 @@ jobs:
       - name: Smoke (jiti loads the extension entry)
         run: npm run smoke --if-present
 
+      - name: Version sentinel (schedule only)
+        # On the daily run only: warn (never fail) when a locked
+        # @earendil-works/* direct dep is behind the latest published version.
+        if: github.event_name == 'schedule'
+        run: |
+          node -e '
+            const fs = require("fs");
+            const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+            const lock = JSON.parse(fs.readFileSync("package-lock.json", "utf8"));
+            const direct = { ...(pkg.dependencies || {}), ...(pkg.peerDependencies || {}), ...(pkg.devDependencies || {}) };
+            for (const name of Object.keys(direct)) {
+              if (!name.startsWith("@earendil-works/")) continue;
+              const entry = lock.packages["node_modules/" + name];
+              console.log(name + " " + (entry ? entry.version : "unknown"));
+            }
+          ' | while read -r name locked; do
+            latest=$(npm view "$name" version --registry=https://registry.npmjs.org 2>/dev/null) || {
+              echo "::warning::$name version check skipped (npm view failed)"
+              continue
+            }
+            if [ -n "$latest" ] && [ "$latest" != "$locked" ]; then
+              echo "::warning::$name $latest available (locked: $locked)"
+            fi
+          done
+
       - name: Pack dry-run (files must cover the entry points)
         run: npm pack --dry-run

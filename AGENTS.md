@@ -55,5 +55,3 @@ test/ab-compare.mjs    A/B 基准对比
 - `~/.pi-turbo/per-ext-timings.json` — EMA 时序画像（自学习，勿手动编辑）
 
 ## 已知问题
-
-- `test/ab-compare.mjs` 引用了不存在的 `../src/parallel-loader.js`（早期迭代遗留死代码），运行会报错

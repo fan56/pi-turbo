@@ -34,7 +34,7 @@ await applyPatch();
 const patched = DefaultResourceLoader.prototype.loadFinalExtensionSet;
 console.log(
 	"patched:",
-	patched.toString().includes("parallelLoadExtensions") ? "YES ✅" : "NO ❌",
+	patched.toString().includes("targetedLoadExtensions") ? "YES ✅" : "NO ❌",
 );
 
 // Create a loader and test loading
